@@ -35,10 +35,11 @@
 
     <div class="button-container">
         <button id="capture-button"><i class="bi bi-camera-fill"></i></button>
-        <!-- 撮り直しボタン (disabled削除) -->
         <button id="retry-button"><i class="bi bi-arrow-counterclockwise"></i></button>
-        <!-- アップロードボタン (disabledとstyle削除) -->
-        <button id="google-upload-button"><i class="bi bi-cloud-upload-fill"></i></button>
+        <button id="google-upload-button">
+            <i class="bi bi-cloud-upload-fill"></i>
+            <span id="photo-count-badge">0</span>
+        </button>
     </div>
 
     <canvas id="canvas" style="display: none;"></canvas>

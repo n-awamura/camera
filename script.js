@@ -21,6 +21,9 @@ const DRIVE_API_KEY = null; // APIキーはOAuthクライアントIDと別。今
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
+// ★ 写真キュー用の配列
+let capturedImagesQueue = [];
+
 let tokenClient = null;
 let gapiInited = false;
 let gisInited = false;
@@ -149,6 +152,17 @@ function updateAuthStatus(isAuthed) {
     window.isGoogleAuthed = isAuthed;
 }
 
+// ★ 枚数表示バッジを更新する関数
+function updatePhotoCountBadge() {
+    const badge = document.getElementById('photo-count-badge');
+    const count = capturedImagesQueue.length;
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline-block' : 'none'; // blockから変更してインライン要素っぽく
+        // 必要に応じて親ボタン(#google-upload-button)のスタイル調整が必要かも
+    }
+}
+
 // 認証状態の監視
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -169,33 +183,56 @@ function initializeCameraApp() {
     fetchGoogleConfig();
     initializeGapiClient();
 
-    // アップロードボタンのイベントリスナー
+    // ★ アップロードボタンのイベントリスナー (旧 #upload-queue-button のロジックを統合)
     const uploadButton = document.getElementById('google-upload-button');
     if (uploadButton) {
         uploadButton.addEventListener('click', () => {
-            if (!window.latestImageDataUrl) { // 画像データチェックを追加
-                alert("先に画像を撮影してください。");
+            if (capturedImagesQueue.length === 0) {
+                alert("アップロードする写真がありません。");
                 return;
             }
             if (window.isGoogleAuthed) {
-                uploadImageToDrive(window.latestImageDataUrl);
+                uploadAllImagesFromQueue();
             } else {
-                requestGoogleAuth(); // 認証を要求。認証後に再度アップロードボタンを押す必要がある。
+                // 認証を促すメッセージを表示し、認証フローを開始
+                alert("Google Driveにアップロードするには、まず認証が必要です。このボタンを再度クリックして認証してください。");
+                requestGoogleAuth();
             }
         });
     }
 
-    // 撮り直しボタンのイベントリスナーを設定 (シンプル化)
+    // 撮り直しボタンのイベントリスナー (変更なし)
     const retryButton = document.getElementById('retry-button');
     if (retryButton) {
         retryButton.addEventListener('click', () => {
-            // カメラ表示に戻す
-            video.style.display = 'block';
-            capturedImage.style.display = 'none';
+            if (capturedImagesQueue.length === 0) {
+                alert("撮り直せる写真がありません。");
+                // カメラ表示に戻す（既にカメラ表示なら何もしない）
+                video.style.display = 'block';
+                capturedImage.style.display = 'none';
+                window.latestImageDataUrl = null;
+                return;
+            }
+            // キューから最後の画像データを削除
+            capturedImagesQueue.pop();
+            console.log("Last captured image removed from queue.");
+             // 最後の画像表示を消してカメラ表示に戻す
+            const lastImageUrl = capturedImagesQueue.length > 0 ? capturedImagesQueue[capturedImagesQueue.length - 1] : null;
+            if (lastImageUrl) {
+                capturedImage.src = lastImageUrl;
+                video.style.display = 'none';
+                capturedImage.style.display = 'block';
+            } else {
+                video.style.display = 'block';
+                capturedImage.style.display = 'none';
+                window.latestImageDataUrl = null;
+            }
+            // バッジを更新
+            updatePhotoCountBadge();
         });
     }
 
-    // 元々あったカメラ関連の処理
+    // カメラ関連の初期化
     const video = document.getElementById('camera');
     const captureButton = document.getElementById('capture-button');
     const canvas = document.getElementById('canvas');
@@ -233,8 +270,17 @@ function initializeCameraApp() {
         capturedImage.style.display = 'block';
         video.style.display = 'none';
 
-        window.latestImageDataUrl = imageDataUrl;
+        // ★ キューに画像データを追加
+        capturedImagesQueue.push(imageDataUrl);
+        window.latestImageDataUrl = imageDataUrl; // 表示や個別処理用に保持（不要なら削除可）
+        console.log(`Image added to queue. Queue size: ${capturedImagesQueue.length}`);
+
+        // バッジを更新
+        updatePhotoCountBadge();
     });
+
+    // 初期バッジ設定
+    updatePhotoCountBadge();
 }
 
 // === ヘルパー関数 (スコープを移動) ===
@@ -251,14 +297,14 @@ function dataURItoBlob(dataURI) {
 }
 
 // === Google Drive アップロード処理 ===
-async function uploadImageToDrive(imageDataUrl) {
+async function uploadImageToDrive(imageUrl) { // 引数名変更
     if (!gapiInited || !gisInited || !gapi.client.getToken()) {
         alert("Google Driveへのアップロードには、まずGoogle認証が必要です。");
         requestGoogleAuth(); // 認証を促す
         return;
     }
 
-    if (!imageDataUrl) {
+    if (!imageUrl) {
         alert("アップロードする画像データがありません。");
         return;
     }
@@ -270,45 +316,77 @@ async function uploadImageToDrive(imageDataUrl) {
 
     console.log(`Uploading image to Google Drive folder: ${googleDriveFolderId}...`);
 
-    try {
-        const blob = dataURItoBlob(imageDataUrl);
-        const fileName = `receipt_${Date.now()}.png`;
+    const blob = dataURItoBlob(imageUrl);
+    const fileName = `receipt_${Date.now()}.png`;
+    const metadata = {
+        name: fileName,
+        mimeType: 'image/png',
+        parents: [googleDriveFolderId] // ★ 変数を使用
+    };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', blob, fileName);
 
-        const metadata = {
-            name: fileName,
-            mimeType: 'image/png',
-            parents: [googleDriveFolderId] // ★ 変数を使用
-        };
+    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${gapi.client.getToken().access_token}` },
+        body: form
+    });
 
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', blob, fileName);
-
-        // Drive API v3 upload endpoint
-        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-            method: 'POST',
-            headers: {
-                // Authorizationヘッダーにアクセストークンを設定
-                Authorization: `Bearer ${gapi.client.getToken().access_token}`
-            },
-            body: form
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Google Drive API Error:", errorData);
-            throw new Error(`Upload failed: ${errorData.error.message}`);
-        }
-
-        const file = await response.json();
-        console.log("File uploaded successfully:", file);
-        alert(`画像をGoogle Driveにアップロードしました！\nファイル名: ${fileName}`);
-
-    } catch (error) {
-        console.error("Error uploading to Google Drive:", error);
-        alert(`Google Driveへのアップロード中にエラーが発生しました: ${error.message}`);
-    } finally {
-        // ★ 終了後、ボタン状態を更新 (失敗時も考慮)
-        updateButtonStates();
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Google Drive API Error:", errorData);
+        throw new Error(`Upload failed: ${errorData.error?.message || response.statusText}`);
     }
+
+    const file = await response.json();
+    console.log(`File uploaded successfully: ${fileName}`, file);
+}
+
+// ★ 一括アップロード関数
+async function uploadAllImagesFromQueue() {
+    if (capturedImagesQueue.length === 0) {
+        alert("アップロードする写真がありません。");
+        return;
+    }
+
+    const queueLength = capturedImagesQueue.length;
+    alert(`${queueLength}枚の写真をアップロードします...`);
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    // アップロード処理（逐次実行）
+    for (let i = 0; i < queueLength; i++) {
+        const imageUrl = capturedImagesQueue[i];
+        try {
+            // ユーザーにどの画像をアップロード中か示す（オプション）
+            // console.log(`Uploading image ${i + 1} of ${queueLength}...`);
+            await uploadImageToDrive(imageUrl);
+            successCount++;
+        } catch (error) {
+            console.error(`Failed to upload image ${i + 1}:`, error);
+            errorCount++;
+            // エラーが発生しても続行するか、ここで中断するか選択できます
+            // とりあえず続行する実装
+        }
+    }
+
+    // ★ アップロード完了後の処理
+    alert(`アップロード完了！\n成功: ${successCount}枚\n失敗: ${errorCount}枚`);
+
+    // グローバル変数をリセット
+    capturedImagesQueue = []; // キューを空にする
+    window.latestImageDataUrl = null;
+
+    // UIをカメラ表示に戻す
+    const video = document.getElementById('camera');
+    const capturedImage = document.getElementById('captured-image');
+    if (video) video.style.display = 'block';
+    if (capturedImage) capturedImage.style.display = 'none';
+
+    // ★★★ バッジ表示を更新（枚数を0にして非表示にする）★★★
+    updatePhotoCountBadge(); 
+
+    console.log("Upload queue cleared and UI reset.");
 } 

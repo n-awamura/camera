@@ -152,14 +152,20 @@ function updateAuthStatus(isAuthed) {
     window.isGoogleAuthed = isAuthed;
 }
 
-// ★ 枚数表示バッジを更新する関数
-function updatePhotoCountBadge() {
+// ★ 枚数表示バッジを更新する関数 (文字列も表示できるように調整)
+function updatePhotoCountBadge(text = null) {
     const badge = document.getElementById('photo-count-badge');
-    const count = capturedImagesQueue.length;
-    if (badge) {
+    if (!badge) return;
+
+    if (text !== null) {
+        // 指定されたテキストを表示 (例: "1/5")
+        badge.textContent = text;
+        badge.style.display = 'inline-block'; // テキスト表示中は必ず表示
+    } else {
+        // 通常の枚数表示
+        const count = capturedImagesQueue.length;
         badge.textContent = count;
-        badge.style.display = count > 0 ? 'inline-block' : 'none'; // blockから変更してインライン要素っぽく
-        // 必要に応じて親ボタン(#google-upload-button)のスタイル調整が必要かも
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
     }
 }
 
@@ -262,21 +268,33 @@ function initializeCameraApp() {
 
     // 撮影ボタンの処理
     captureButton.addEventListener('click', () => {
+        // 画像キャプチャ処理
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageDataUrl = canvas.toDataURL('image/png');
+
+        // キャプチャ画像を表示
         capturedImage.src = imageDataUrl;
         capturedImage.style.display = 'block';
         video.style.display = 'none';
 
-        // ★ キューに画像データを追加
+        // キューに追加し、バッジ更新
         capturedImagesQueue.push(imageDataUrl);
-        window.latestImageDataUrl = imageDataUrl; // 表示や個別処理用に保持（不要なら削除可）
+        window.latestImageDataUrl = imageDataUrl; // 最新画像のURLを保持 (不要なら削除可)
         console.log(`Image added to queue. Queue size: ${capturedImagesQueue.length}`);
-
-        // バッジを更新
         updatePhotoCountBadge();
+
+        // ★ 1.5秒後に自動でカメラ表示に戻る
+        setTimeout(() => {
+            // capturedImageが表示されている場合のみカメラに戻す
+            // (ユーザーが1.5秒以内にリトライなどを押した場合を考慮)
+            if (capturedImage.style.display === 'block') {
+                 video.style.display = 'block';
+                 capturedImage.style.display = 'none';
+                 console.log("Auto-returned to camera view.");
+            }
+        }, 1500); // 1500ミリ秒 = 1.5秒
     });
 
     // 初期バッジ設定
@@ -343,50 +361,74 @@ async function uploadImageToDrive(imageUrl) { // 引数名変更
     console.log(`File uploaded successfully: ${fileName}`, file);
 }
 
-// ★ 一括アップロード関数
+// ★ 一括アップロード関数 (進捗表示対応)
 async function uploadAllImagesFromQueue() {
     if (capturedImagesQueue.length === 0) {
         alert("アップロードする写真がありません。");
         return;
     }
 
+    const uploadButton = document.getElementById('google-upload-button');
+    const originalButtonHtml = uploadButton ? uploadButton.innerHTML : ''; // 元のHTMLを保存
     const queueLength = capturedImagesQueue.length;
-    alert(`${queueLength}枚の写真をアップロードします...`);
 
-    let successCount = 0;
-    let errorCount = 0;
-
-    // アップロード処理（逐次実行）
-    for (let i = 0; i < queueLength; i++) {
-        const imageUrl = capturedImagesQueue[i];
-        try {
-            // ユーザーにどの画像をアップロード中か示す（オプション）
-            // console.log(`Uploading image ${i + 1} of ${queueLength}...`);
-            await uploadImageToDrive(imageUrl);
-            successCount++;
-        } catch (error) {
-            console.error(`Failed to upload image ${i + 1}:`, error);
-            errorCount++;
-            // エラーが発生しても続行するか、ここで中断するか選択できます
-            // とりあえず続行する実装
+    try {
+        // ★ ボタン表示を変更して処理中を示す
+        if (uploadButton) {
+            uploadButton.innerHTML = '<i class="bi bi-arrow-repeat spinner"></i>'; // スピナーアイコンに変更
+            uploadButton.disabled = true; // ボタンを無効化
         }
+        updatePhotoCountBadge(`0/${queueLength}`); // 初期進捗表示
+
+        alert(`${queueLength}枚の写真をアップロードします...`); // アラートは残してもOK
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        // アップロード処理（逐次実行）
+        for (let i = 0; i < queueLength; i++) {
+            const imageUrl = capturedImagesQueue[i];
+            // ★ 進捗をバッジに表示
+            updatePhotoCountBadge(`${i + 1}/${queueLength}`);
+            console.log(`Uploading image ${i + 1} of ${queueLength}...`);
+
+            try {
+                await uploadImageToDrive(imageUrl);
+                successCount++;
+            } catch (error) {
+                console.error(`Failed to upload image ${i + 1}:`, error);
+                errorCount++;
+                // エラー発生時、ユーザーに通知するかどうか？ (オプション)
+                 alert(`写真 ${i + 1} のアップロードに失敗しました。\n理由: ${error.message}`);
+                 // 失敗したら中断する場合
+                 // break;
+            }
+        }
+
+        // ★ アップロード完了後の処理
+        alert(`アップロード完了！\n成功: ${successCount}枚\n失敗: ${errorCount}枚`);
+
+        // グローバル変数をリセット
+        capturedImagesQueue = [];
+        window.latestImageDataUrl = null;
+
+        // UIをカメラ表示に戻す
+        const video = document.getElementById('camera');
+        const capturedImage = document.getElementById('captured-image');
+        if (video) video.style.display = 'block';
+        if (capturedImage) capturedImage.style.display = 'none';
+
+    } catch (error) {
+        // uploadImageToDrive以外での予期せぬエラー
+        console.error("An unexpected error occurred during upload:", error);
+        alert("アップロード中に予期せぬエラーが発生しました。");
+    } finally {
+        // ★ 成功・失敗に関わらず、ボタン表示とバッジを元に戻す
+        if (uploadButton) {
+            uploadButton.innerHTML = originalButtonHtml; // ボタンの見た目を元に戻す
+            uploadButton.disabled = false; // ボタンを有効化
+        }
+        updatePhotoCountBadge(); // バッジを通常の枚数表示に戻す (キューは空なので非表示になる)
+        console.log("Upload process finished. UI reset.");
     }
-
-    // ★ アップロード完了後の処理
-    alert(`アップロード完了！\n成功: ${successCount}枚\n失敗: ${errorCount}枚`);
-
-    // グローバル変数をリセット
-    capturedImagesQueue = []; // キューを空にする
-    window.latestImageDataUrl = null;
-
-    // UIをカメラ表示に戻す
-    const video = document.getElementById('camera');
-    const capturedImage = document.getElementById('captured-image');
-    if (video) video.style.display = 'block';
-    if (capturedImage) capturedImage.style.display = 'none';
-
-    // ★★★ バッジ表示を更新（枚数を0にして非表示にする）★★★
-    updatePhotoCountBadge(); 
-
-    console.log("Upload queue cleared and UI reset.");
 } 

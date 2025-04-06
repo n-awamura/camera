@@ -11,31 +11,48 @@ body {
     /* 高さいっぱいに表示 */
     height: 100vh;
     /* 要素を中央揃え（主にタイトル用） */
-    align-items: center;
+    /* align-items: center; */
 }
 
 h1 {
+    /* display: none; */ /* タイトルを非表示にしてスペースを確保 */
+    /* または、サイズやマージンを調整 */
     color: white;
     text-align: center;
-    font-size: 1.2em;
-    padding: 10px 0;
-    /* 上部に固定する場合（任意） */
-    /* position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.5); z-index: 10; */
+    font-size: 1.0em; /* 少し小さく */
+    padding: 5px 0; /* パディングを小さく */
+    margin: 0; /* マージンをなくす */
+    /* 必要であれば高さを固定 */
+    /* height: 30px; */
+    flex-shrink: 0; /* タイトルが縮まないように */
 }
 
 #camera {
-    /* 画面幅いっぱいに表示 */
     width: 100%;
-    /* 高さはアスペクト比を保ちつつ自動調整されることが多いが、調整が必要な場合 */
-    /* max-height: 80vh; */ /* 例: 高さを制限 */
-    object-fit: cover; /* アスペクト比を保ちつつコンテナにフィット */
-    display: block; /* デフォルトのインライン要素の隙間をなくす */
-    /* 中央揃え（bodyのalign-itemsと競合する場合） */
-    /* margin: auto; */
+    /* 高さを画面いっぱいからボタン等の高さを引いた値に */
+    /* height: calc(100vh - 80px); */ /* ボタンの高さ等に応じて調整 */
+    /* またはflex-growで残りのスペースを埋める */
+    flex-grow: 1;
+    object-fit: cover;
+    display: block;
+    /* overflow: hidden; */ /* はみ出しを隠す場合 */
+}
+
+/* ボタンのコンテナ（必要であれば） */
+.button-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* background: rgba(0,0,0,0.5); */ /* 背景を少し暗くする場合 */
+    z-index: 10;
 }
 
 #capture-button, #retry-button {
-    /* ボタンのスタイル */
     padding: 15px 25px;
     font-size: 1.2em;
     cursor: pointer;
@@ -45,24 +62,27 @@ h1 {
     color: white;
     text-align: center;
     text-decoration: none;
-    display: inline-block;
-    margin: 20px auto; /* 上下にマージン、左右中央揃え */
-    display: block; /* 中央揃えのためにブロック要素に */
-    width: 80%; /* 幅を画面幅の80%に */
-    max-width: 300px; /* 最大幅を設定 */
+    /* display: block; を削除 */
+    /* width: 80%; */ /* 幅を自動または固定に */
+    width: auto;
+    /* max-width: 300px; を削除 */
+    margin: 0 10px; /* 左右に少しマージン */
+    /* position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); */ /* 固定配置に変更 */
+    /* z-index: 10; */
 }
 
-#retry-button {
-    background-color: #ff9800; /* オレンジ */
-}
+/* #retry-button は capture-button と同じスタイルを使うため、共通化 */
 
 #captured-image {
-    /* 撮影後の画像表示 */
-    display: none; /* 初期状態では非表示 */
-    width: 100%; /* 画面幅いっぱいに */
-    max-height: 80vh; /* 高さを制限する場合 */
-    object-fit: contain; /* アスペクト比を保ちつつ全体を表示 */
-    margin-top: 10px;
+    display: none;
+    width: 100%;
+    /* max-height: 80vh; */
+    /* 表示領域全体を使うように調整 */
+    flex-grow: 1; /* 残りのスペースを埋める */
+    object-fit: contain;
+    /* margin-top: 10px; を削除または調整 */
+    margin: 0;
+    max-height: calc(100vh - 80px); /* ボタン等の高さを考慮 */
 }
 
 /* iPhone SE (初代) 幅320px 向けの微調整（必要なら） */

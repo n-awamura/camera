@@ -133,6 +133,15 @@ function handleTokenResponse(response) {
     } else {
         console.error('GAPI client not initialized before setting token.');
     }
+
+    // ★★★ Google認証後にカメラ表示に戻す ★★★
+    const video = document.getElementById('camera');
+    const capturedImage = document.getElementById('captured-image');
+    if (video) video.style.display = 'block';
+    if (capturedImage) capturedImage.style.display = 'none';
+    console.log("Ensuring camera view is active after Google Auth.");
+    // ★★★★★★★★★★★★★★★★★★★★★★★
+
     updateAuthStatus(true);
 }
 
@@ -285,16 +294,17 @@ function initializeCameraApp() {
         console.log(`Image added to queue. Queue size: ${capturedImagesQueue.length}`);
         updatePhotoCountBadge();
 
-        // ★ 1.5秒後に自動でカメラ表示に戻る
+        // ★ 1.0秒後に自動でカメラ表示に戻る
         setTimeout(() => {
+            const video = document.getElementById('camera'); // video要素を再取得
+            const capturedImage = document.getElementById('captured-image'); // capturedImage要素を再取得
             // capturedImageが表示されている場合のみカメラに戻す
-            // (ユーザーが1.5秒以内にリトライなどを押した場合を考慮)
-            if (capturedImage.style.display === 'block') {
-                 video.style.display = 'block';
+            if (capturedImage && capturedImage.style.display === 'block') {
+                 if (video) video.style.display = 'block';
                  capturedImage.style.display = 'none';
                  console.log("Auto-returned to camera view.");
             }
-        }, 1500); // 1500ミリ秒 = 1.5秒
+        }, 1000); // ★ 1500ミリ秒から 1000ミリ秒 (1.0秒) に変更
     });
 
     // 初期バッジ設定

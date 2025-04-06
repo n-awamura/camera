@@ -134,15 +134,26 @@ function handleTokenResponse(response) {
         console.error('GAPI client not initialized before setting token.');
     }
 
-    // ★★★ Google認証後にカメラ表示に戻す ★★★
+    // ★★★ Google認証後にカメラ表示に戻し、再生を試みる ★★★
     const video = document.getElementById('camera');
     const capturedImage = document.getElementById('captured-image');
-    if (video) video.style.display = 'block';
-    if (capturedImage) capturedImage.style.display = 'none';
-    console.log("Ensuring camera view is active after Google Auth.");
-    // ★★★★★★★★★★★★★★★★★★★★★★★
+    if (video) {
+        video.style.display = 'block';
+        // ストリームが一時停止している可能性を考慮してplay()を呼ぶ
+        // video.paused はストリーム自体がない場合もtrueになりうるので、play()を試す
+        video.play().catch(err => {
+             // play()が失敗する可能性もある (ユーザー操作起因でない場合など)
+             console.error("Error attempting to play video after auth:", err);
+             // ここでユーザーにカメラ再開を促すUIを出すことも検討できる
+        });
+    }
+    if (capturedImage) {
+        capturedImage.style.display = 'none';
+    }
+    console.log("Ensuring camera view is active and attempting to play after Google Auth.");
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
-    updateAuthStatus(true);
+    updateAuthStatus(true); // 認証ステータスを更新
 }
 
 // Google認証を開始する関数 (consent prompt)

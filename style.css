@@ -9,9 +9,11 @@ body {
     flex-direction: column;
     /* iPhone SE (初代/第2世代/第3世代) のポートレート幅 320px, 375px を考慮 */
     /* 高さいっぱいに表示 */
-    height: 100vh;
-    /* 要素を中央揃え（主にタイトル用） */
+    height: 100vh; /* Fallback */
+    height: 100dvh; /* Dynamic viewport height */
     /* align-items: center; */
+    box-sizing: border-box; /* Padding を高さに含める */
+    padding-bottom: 80px; /* ボタンコンテナのおおよその高さ */
 }
 
 h1 {
@@ -38,7 +40,7 @@ h1 {
     /* overflow: hidden; */ /* はみ出しを隠す場合 */
 }
 
-/* ボタンのコンテナ（必要であれば） */
+/* ボタンのコンテナ */
 .button-container {
     position: fixed;
     bottom: 0;
@@ -48,8 +50,11 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* background: rgba(0,0,0,0.5); */ /* 背景を少し暗くする場合 */
+    background: rgba(0,0,0,0.7); /* 背景を少し濃くしてボタンを見やすくする */
     z-index: 10;
+    /* 高さを固定する場合 */
+    /* height: 80px; */
+    box-sizing: border-box;
 }
 
 #capture-button, #retry-button {
@@ -82,7 +87,8 @@ h1 {
     object-fit: contain;
     /* margin-top: 10px; を削除または調整 */
     margin: 0;
-    max-height: calc(100vh - 80px); /* ボタン等の高さを考慮 */
+    /* max-heightからpadding分を除く必要はない（flex-growがよしなにやってくれるはず） */
+    /* max-height: calc(100vh - 80px); */ 
 }
 
 /* iPhone SE (初代) 幅320px 向けの微調整（必要なら） */

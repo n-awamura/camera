@@ -71,26 +71,23 @@ body {
     font-size: 1.3rem;
 }
 
-/* カメラ/画像表示エリア */
+/* カメラ/画像表示エリア (プレビューと重なるように調整) */
 #camera,
 #captured-image {
+    position: absolute; /* プレビューと重ねるため */
+    top: 50px; /* ヘッダーの下 */
+    left: 0;
     width: 100%;
-    /* flex-grow: 1; */ /* Flexは使わない（ヘッダーとボタンで挟むため）*/
-    /* display: block; */
-    object-fit: cover; 
-    overflow: hidden; 
-    /* 高さをbodyのpaddingを考慮して設定 */
-    /* ボタンコンテナの高さを 50px として再計算 */
-    height: calc(100vh - 50px - 50px);
-    height: calc(100dvh - 50px - 50px);
+    /* 高さは変更なし (calc(100dvh - 50px - 50px) など) */
+    height: calc(100dvh - 50px - 50px); /* ヘッダー50px, ボタン50pxの場合 */
+    object-fit: cover;
+    z-index: 1; /* プレビューより奥 */
 }
-
+/* capture-image も同様に position: absolute; を設定 */
 #captured-image {
-    object-fit: contain; /* キャプチャ画像は全体表示 */
-    background-color: #000; /* 画像が小さい場合の背景 */
-    display: none; /* 初期非表示 */
+     z-index: 2; /* カメラより手前、プレビューより奥 */
+     /* 必要に応じて他のスタイル調整 */
 }
-
 
 /* ボタンのコンテナ */
 .button-container {
@@ -106,13 +103,12 @@ body {
     z-index: 10;
     height: 50px; /* ★高さを 50px に変更 */
     box-sizing: border-box;
-    gap: 15px; /* ボタン間のスペース */
+    gap: 30px; /* ★ ボタン間隔を調整 (例: 30px) */
 }
 
 /* 共通ボタン スタイル */
 #capture-button,
-#retry-button,
-#google-upload-button
+#preview-upload-button
 /* #upload-queue-button 削除 */
 {
     /* サイズ、形 */
@@ -154,6 +150,70 @@ body {
     display: none;
 }
 
+/* ★★★ プレビューコンテナのスタイル ★★★ */
+#upload-preview-container {
+    position: absolute;
+    top: 50px; /* ヘッダーの下 */
+    left: 0;
+    width: 100%;
+    height: calc(100dvh - 50px - 50px); /* カメラと同じ高さ */
+    background-color: #f8f9fa; /* 背景色 (任意) */
+    padding: 30px 10px 10px 10px; /* ★ 上パディングをさらに10px追加 (合計30px) */
+    box-sizing: border-box;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 8px; /* ★ 列間隔は8pxのまま */
+    row-gap: 20px; /* ★ 行間隔を20pxに設定 */
+    overflow-y: auto; /* 縦スクロール */
+    z-index: 3; /* カメラやキャプチャ画像より手前 */
+}
+
+/* プレビューコンテナ内の画像スタイル */
+#upload-preview-container img {
+    width: 100%; /* グリッドカラムの幅に合わせる */
+    max-width: 100px; /* ★ 最大幅を約100pxに制限 (グリッドの gap も考慮) */
+    height: auto; /* 縦横比維持 */
+    object-fit: contain;
+    display: block;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    background-color: #eee;
+    justify-self: center; /* ★ 各画像をセル内で中央揃え */
+}
+
+/* 進捗表示テキストのスタイル */
+#upload-progress-text {
+    position: sticky; /* スクロールしても上部に固定 */
+    top: 0;
+    left: 0; /* コンテナ幅に広げるため */
+    grid-row: 1;
+    grid-column: 1 / -1; /* ★ 全カラム幅を占有 */
+    background-color: rgba(255, 255, 255, 0.9); /* 半透明背景 */
+    padding: 8px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #333;
+    z-index: 4;
+    margin-bottom: 8px; /* グリッドの gap とは別にマージン調整 */
+}
+/* ★★★★★★★★★★★★★★★★★★★ */
+
+/* ★ プレビュー画面内のアクションボタンコンテナ */
+/* .preview-actions { ... } */
+
+/* ★ プレビュー画面内のボタン共通スタイル */
+/* .preview-actions button { ... } */
+/* .preview-actions button i { ... } */
+
+/* キャンセルボタン */
+/* #cancel-preview-button { ... } */
+
+/* アップロード実行ボタン */
+/* #google-upload-button { ... } (プレビュー内ボタンのスタイル) */
+/* #google-upload-button.uploading { ... } (プレビュー内ボタンのスタイル) */
+
 /* iPhone SE (初代) 幅375px 向けの微調整 */
 @media (max-width: 375px) {
     #main-header {
@@ -168,12 +228,12 @@ body {
     }
 
     .button-container {
-        height: 50px; /* ★小さい画面でも高さを 50px に変更 */
-        padding: 5px 0; /* paddingは打ち消されていたのでそのままでも良いが、念のため記述 */
+        height: 50px;
+        padding: 5px 0;
+        gap: 25px; /* ★ 小画面でも間隔調整 */
     }
     #capture-button,
-    #retry-button,
-    #google-upload-button
+    #preview-upload-button
     {
         width: 35px; /* 40pxより少し小さく */
         height: 35px;
@@ -192,11 +252,22 @@ body {
         padding-bottom: 50px; /* ★ボタンコンテナの高さに合わせて 50px に変更 */
     }
     #camera,
-    #captured-image {
-        /* 高さを再計算 (ヘッダー40px, ボタン50px) */
-        height: calc(100vh - 40px - 50px); /* ★計算式変更 */
-        height: calc(100dvh - 40px - 50px);
+    #captured-image,
+    #upload-preview-container {
+        top: 40px; /* ヘッダー高さ */
+        height: calc(100dvh - 40px - 50px); /* ヘッダー40px, ボタン50pxの場合 */
     }
+    #upload-preview-container {
+        gap: 5px; /* ← この行を変更 */
+        column-gap: 5px; /* ★ 列間隔は5px */
+        row-gap: 15px; /* ★ 小画面では行間隔を少し狭めて15pxに */
+    }
+    #upload-preview-container img {
+        max-width: 90px; /* 小画面では最大幅を少し小さく */
+    }
+    /* ★ レスポンシブ内のプレビューアクションボタンスタイル削除 */
+    /* .preview-actions button { ... } */
+    /* .preview-actions button i { ... } */
 } 
 
 /* スピナーアニメーション */

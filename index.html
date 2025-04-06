@@ -30,20 +30,27 @@
             </div> -->
     </header>
 
-    <video id="camera" playsinline autoplay></video>
-    <img id="captured-image" alt="撮影された画像">
+    <div id="main-content">
+        <video id="camera" autoplay playsinline></video>
+        <img id="captured-image" alt="Captured Image" style="display: none;">
 
-    <div class="button-container">
-        <button id="capture-button"><i class="bi bi-camera-fill"></i></button>
-        <button id="retry-button"><i class="bi bi-arrow-counterclockwise"></i></button>
-        <button id="google-upload-button">
-            <i class="bi bi-cloud-upload-fill"></i>
-            <span id="photo-count-badge">0</span>
-        </button>
+        <!-- プレビュー用コンテナ -->
+        <div id="upload-preview-container" style="display: none;">
+            <div id="upload-progress-text"></div>
+            <!-- 画像はここにJSで追加 -->
+        </div>
     </div>
 
     <canvas id="canvas" style="display: none;"></canvas>
-    <!-- canvasは画面表示不要なのでどこでも良い -->
+
+    <!-- 下部ボタンコンテナ -->
+    <div class="button-container">
+        <button id="capture-button"><i class="bi bi-camera-fill"></i></button>
+        <button id="preview-upload-button">
+            <i class="bi bi-stack"></i>
+            <span id="photo-count-badge">0</span>
+        </button>
+    </div>
 
     <script src="script.js" type="module"></script>
 

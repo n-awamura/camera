@@ -86,12 +86,34 @@ function initializeCameraApp() {
         }
         console.log("画像をローカルに保存...");
         const link = document.createElement('a');
-        link.href = imageDataUrl;
+
+        // Data URIをBlobに変換
+        const blob = dataURItoBlob(imageDataUrl);
+        // BlobからObject URLを生成
+        const blobUrl = URL.createObjectURL(blob);
+
+        link.href = blobUrl;
         link.download = `captured_image_${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        // 重要: Object URLを解放する
+        URL.revokeObjectURL(blobUrl);
+
         console.log("画像ダウンロードリンクをクリックしました。");
+    }
+
+    // Data URIをBlobに変換するヘルパー関数
+    function dataURItoBlob(dataURI) {
+        const byteString = atob(dataURI.split(',')[1]);
+        const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], { type: mimeString });
     }
 
     // グローバル変数（またはinitializeCameraAppスコープ内）でボタンを保持

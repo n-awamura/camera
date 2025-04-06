@@ -71,14 +71,19 @@ function initializeCameraApp() {
         video.style.display = 'none'; 
         captureButton.style.display = 'none'; // 撮影ボタンを非表示
 
-        saveImageLocally(imageDataUrl);
+        // imageDataUrlを後でダウンロードボタンで使えるように保持
+        window.latestImageDataUrl = imageDataUrl; // グローバル変数を使う例（スコープを考慮して改善可能）
 
-        // 撮り直しボタンを表示
-        showRetryButton();
+        // 撮り直しボタンとダウンロードボタンを表示
+        showActionButtons();
     });
 
-    // ローカル保存関数
+    // ローカル保存関数 (ダウンロードボタンから呼ばれる)
     function saveImageLocally(imageDataUrl) {
+        if (!imageDataUrl) {
+            console.error("ダウンロードする画像データがありません。");
+            return;
+        }
         console.log("画像をローカルに保存...");
         const link = document.createElement('a');
         link.href = imageDataUrl;
@@ -87,26 +92,27 @@ function initializeCameraApp() {
         link.click();
         document.body.removeChild(link);
         console.log("画像ダウンロードリンクをクリックしました。");
-        // addRetryButton呼び出しは不要
     }
 
-    // グローバル変数（またはinitializeCameraAppスコープ内）でretryButtonを保持
+    // グローバル変数（またはinitializeCameraAppスコープ内）でボタンを保持
     let retryButton = null;
+    let downloadButton = null;
 
-    // 撮り直しボタンを作成・追加する関数 (初期化時に一度だけ呼ぶ)
+    // 撮り直しボタンを作成・追加する関数
     function createRetryButton() {
-        if (!retryButton) { // まだ作成されていなければ
+        if (!retryButton) {
             retryButton = document.createElement('button');
             retryButton.id = 'retry-button';
             retryButton.textContent = '撮り直す';
-            retryButton.style.display = 'none'; // 初期状態は非表示
+            retryButton.style.display = 'none';
             retryButton.addEventListener('click', () => {
                 video.style.display = 'block';
-                captureButton.style.display = 'inline-block'; // CSSで指定したdisplay値に戻す
+                captureButton.style.display = 'inline-block'; 
                 capturedImage.style.display = 'none';
                 retryButton.style.display = 'none';
+                downloadButton.style.display = 'none'; // ダウンロードボタンも隠す
             });
-
+            // ボタンコンテナに追加 (createDownloadButtonと共通化も可能)
             const buttonContainer = document.querySelector('.button-container');
             if (buttonContainer) {
                 buttonContainer.appendChild(retryButton);
@@ -114,15 +120,38 @@ function initializeCameraApp() {
         }
     }
 
-    // 撮り直しボタンを表示する関数
-    function showRetryButton() {
-        if (retryButton) {
-            retryButton.style.display = 'inline-block'; // CSSで指定したdisplay値に戻す
+    // ダウンロードボタンを作成・追加する関数
+    function createDownloadButton() {
+        if (!downloadButton) {
+            downloadButton = document.createElement('button');
+            downloadButton.id = 'download-button';
+            downloadButton.textContent = 'ダウンロード';
+            downloadButton.style.display = 'none';
+            downloadButton.addEventListener('click', () => {
+                // 保持しておいた画像データをダウンロード
+                saveImageLocally(window.latestImageDataUrl);
+            });
+            // ボタンコンテナに追加
+            const buttonContainer = document.querySelector('.button-container');
+            if (buttonContainer) {
+                buttonContainer.appendChild(downloadButton);
+            }
         }
     }
 
-    // アプリ初期化時に撮り直しボタンを作成
+    // 撮り直しボタンとダウンロードボタンを表示する関数
+    function showActionButtons() {
+        if (retryButton) {
+            retryButton.style.display = 'inline-block'; 
+        }
+        if (downloadButton) {
+            downloadButton.style.display = 'inline-block';
+        }
+    }
+
+    // アプリ初期化時にボタンを作成
     createRetryButton();
+    createDownloadButton();
 }
 
 // 元のグローバルスコープにあった処理は initializeCameraApp 内に移動

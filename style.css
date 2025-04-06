@@ -57,7 +57,7 @@ h1 {
     box-sizing: border-box;
 }
 
-#capture-button, #retry-button {
+#capture-button, #retry-button, #download-button {
     padding: 15px 25px;
     font-size: 1.2em;
     cursor: pointer;
@@ -76,7 +76,14 @@ h1 {
     /* z-index: 10; */
 }
 
-/* #retry-button は capture-button と同じスタイルを使うため、共通化 */
+#retry-button,
+#download-button {
+    background-color: #ff9800; /* オレンジ (撮り直し) */
+}
+
+#download-button {
+    background-color: #2196F3; /* 青 (ダウンロード) */
+}
 
 #captured-image {
     display: none;

@@ -127,6 +127,7 @@ function handleTokenResponse(response) {
         updateAuthStatus(false);
         return;
     }
+
     console.log('Google Access Token acquired.');
     if (window.gapi && gapi.client) {
         gapi.client.setToken({ access_token: response.access_token });
@@ -134,26 +135,52 @@ function handleTokenResponse(response) {
         console.error('GAPI client not initialized before setting token.');
     }
 
-    // ★★★ Google認証後にカメラ表示に戻し、再生を試みる ★★★
+    // ★★★ Google認証後にカメラストリームを再取得 ★★★
     const video = document.getElementById('camera');
     const capturedImage = document.getElementById('captured-image');
-    if (video) {
-        video.style.display = 'block';
-        // ストリームが一時停止している可能性を考慮してplay()を呼ぶ
-        // video.paused はストリーム自体がない場合もtrueになりうるので、play()を試す
-        video.play().catch(err => {
-             // play()が失敗する可能性もある (ユーザー操作起因でない場合など)
-             console.error("Error attempting to play video after auth:", err);
-             // ここでユーザーにカメラ再開を促すUIを出すことも検討できる
-        });
-    }
+    // まずキャプチャ画像は非表示に
     if (capturedImage) {
         capturedImage.style.display = 'none';
     }
-    console.log("Ensuring camera view is active and attempting to play after Google Auth.");
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    // カメラ表示をblockにしてから、ストリームを再取得・設定
+    if (video) {
+        video.style.display = 'block';
+        console.log("Attempting to restart camera after Google Auth...");
+        startCamera(); // ★ カメラ開始関数を再呼び出し
+    } else {
+        console.error("Camera element not found after auth.");
+    }
+    console.log("Camera stream restart requested after Google Auth.");
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
     updateAuthStatus(true); // 認証ステータスを更新
+}
+
+// カメラへのアクセス (変更なし、handleTokenResponseから呼ばれる)
+async function startCamera() {
+    const video = document.getElementById('camera'); // 関数内でvideo要素を取得
+    if (!video) {
+        console.error("Camera element not found in startCamera.");
+        return; // video要素がなければ処理中断
+    }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: 'environment',
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            audio: false
+        });
+        video.srcObject = stream;
+        // video.play() は autoplay 属性があれば不要な場合が多いが、念のため追加しても良い
+        await video.play(); // play() も試みる
+        console.log("Camera stream started/restarted successfully.");
+    } catch (err) {
+        console.error("カメラへのアクセスに失敗しました: ", err);
+        // 認証後に呼ばれた場合、再度アラートを出すか検討
+        // alert("カメラへのアクセス許可が必要です。");
+    }
 }
 
 // Google認証を開始する関数 (consent prompt)
@@ -264,24 +291,6 @@ function initializeCameraApp() {
     const canvas = document.getElementById('canvas');
     const capturedImage = document.getElementById('captured-image');
     const context = canvas.getContext('2d');
-
-    // カメラへのアクセス
-    async function startCamera() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
-                    facingMode: 'environment', // 背面カメラを使用
-                    width: { ideal: 1920 }, // iPhone SEの解像度に合わせて調整可能
-                    height: { ideal: 1080 }
-                }, 
-                audio: false 
-            });
-            video.srcObject = stream;
-        } catch (err) {
-            console.error("カメラへのアクセスに失敗しました: ", err);
-            alert("カメラへのアクセス許可が必要です。");
-        }
-    }
 
     // ページ読み込み時にカメラを開始 → initializeCameraApp内での呼び出しに変更
     startCamera();

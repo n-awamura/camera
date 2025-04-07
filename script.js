@@ -90,16 +90,60 @@ function handleCaptureClick() {
 function captureImageAndAddToQueue() {
     if (!video || video.paused || video.ended || !video.srcObject) {
         console.warn("カメラが準備できていないため撮影できません。");
-        // startCamera(); // 念のためカメラ再起動を試みる
         return;
     }
-    // 画像キャプチャ処理
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageDataUrl = canvas.toDataURL('image/png');
-    capturedImagesQueue.push(imageDataUrl);
-    console.log(`Image added to queue. Queue size: ${capturedImagesQueue.length}`);
+
+    // --- トリミング計算に必要な値を取得 ---
+    const videoWidth = video.videoWidth;    // カメラ映像の実際の幅
+    const videoHeight = video.videoHeight;   // カメラ映像の実際の高さ
+    const displayWidth = video.offsetWidth;  // video要素の画面上の表示幅
+    const displayHeight = video.offsetHeight; // video要素の画面上の表示高さ
+
+    if (!videoWidth || !videoHeight || !displayWidth || !displayHeight) {
+         console.error("ビデオのサイズ情報が取得できませんでした。");
+         // 通常のキャプチャを試みる (フォールバック)
+         canvas.width = videoWidth || displayWidth || 640; // デフォルト値
+         canvas.height = videoHeight || displayHeight || 480;
+         context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } else {
+        // --- アスペクト比を計算 ---
+        const nativeRatio = videoWidth / videoHeight;
+        const displayRatio = displayWidth / displayHeight;
+
+        let sx = 0, sy = 0, sw = videoWidth, sh = videoHeight;
+
+        // --- プレビューに合わせて描画ソース領域を計算 (object-fit: cover; を想定) ---
+        if (nativeRatio > displayRatio) {
+            // カメラ映像の方が横長の場合 (左右がプレビューでトリミングされている)
+            sw = videoHeight * displayRatio; // 描画する幅を計算
+            sx = (videoWidth - sw) / 2;      // 描画開始のX座標を中央に
+            console.log(`Trimming left/right: sx=${sx}, sw=${sw}`);
+        } else if (nativeRatio < displayRatio) {
+            // カメラ映像の方が縦長の場合 (上下がプレビューでトリミングされている)
+            sh = videoWidth / displayRatio; // 描画する高さを計算
+            sy = (videoHeight - sh) / 2;     // 描画開始のY座標を中央に
+            console.log(`Trimming top/bottom: sy=${sy}, sh=${sh}`);
+        }
+        // アスペクト比が同じ場合はトリミング不要 (sx=0, sy=0, sw=videoWidth, sh=videoHeight)
+
+        // --- Canvasのサイズを、描画する領域のサイズに設定 ---
+        // これにより、キャプチャ画像はプレビューと同じアスペクト比で、かつ高解像度になる
+        canvas.width = sw;
+        canvas.height = sh;
+
+        // --- 計算したソース領域 (sx, sy, sw, sh) をCanvas全体 (0, 0, canvas.width, canvas.height) に描画 ---
+        context.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    }
+
+    // --- 画像データを取得してキューに追加 ---
+    try {
+        const imageDataUrl = canvas.toDataURL('image/png');
+        capturedImagesQueue.push(imageDataUrl);
+        console.log(`Image added to queue (cropped). Queue size: ${capturedImagesQueue.length}`);
+    } catch (e) {
+         console.error("Error generating Data URL:", e);
+         alert("画像データの生成に失敗しました。");
+    }
 }
 
 // ★ プレビュー表示/アップロード実行ボタンのハンドラ (テキスト設定削除)

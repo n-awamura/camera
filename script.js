@@ -49,6 +49,10 @@ function initializeCameraApp() {
     // --- イベントリスナー設定 ---
     if (captureButton) captureButton.addEventListener('click', handleCaptureClick);
     if (previewUploadButton) previewUploadButton.addEventListener('click', handlePreviewUploadClick);
+    // ★ プレビューコンテナに削除ボタン用のリスナーを追加 (イベント委任)
+    if (uploadPreviewContainer) {
+        uploadPreviewContainer.addEventListener('click', handleDeletePreviewImageClick);
+    }
 
     // --- 初期状態設定 ---
     console.log("Setting up camera and initial badge state...");
@@ -78,12 +82,18 @@ async function fetchGoogleConfig() {
 
 // === イベントハンドラ ===
 
-// 撮影ボタン
+// 撮影ボタン (プレビュー解除機能追加)
 function handleCaptureClick() {
-    if (isPreviewMode) return; // プレビュー中は無効
+    // ★ プレビューモード中ならプレビューを終了
+    if (isPreviewMode) {
+        console.log("Exiting preview via capture button.");
+        exitPreviewMode(false); // キューはクリアしない
+        return;
+    }
+    // 通常の撮影処理
     captureImageAndAddToQueue();
     updatePhotoCountBadge();
-    updatePreviewUploadButtonState('preview'); // 撮影したらボタンは通常状態
+    updatePreviewUploadButtonState('preview');
 }
 
 // 画像をキャプチャしてキューに追加する関数
@@ -166,7 +176,7 @@ function handlePreviewUploadClick() {
     }
 }
 
-// ★ プレビュー表示関数
+// ★ プレビュー表示関数 (削除ボタン生成追加)
 function showPreview() {
     if (capturedImagesQueue.length === 0) {
         alert("プレビューする写真がありません。");
@@ -179,30 +189,37 @@ function showPreview() {
     if (video) video.style.display = 'none';
     if (capturedImage) capturedImage.style.display = 'none';
     if (uploadPreviewContainer) {
-        // 画像要素をクリアして再生成
-        const imageElements = uploadPreviewContainer.querySelectorAll('img');
-        imageElements.forEach(img => img.remove());
+        // --- コンテナの中身をクリア (進捗テキスト含む) ---
+        uploadPreviewContainer.innerHTML = '';
 
-        // 進捗テキスト要素取得/生成
-        const progressTextElem = uploadPreviewContainer.querySelector('#upload-progress-text');
-        if (!progressTextElem) {
-            uploadProgressText = document.createElement('div');
-            uploadProgressText.id = 'upload-progress-text';
-            uploadPreviewContainer.prepend(uploadProgressText);
-        } else {
-            uploadProgressText = progressTextElem;
-        }
-        // ★ テキストを空にして、要素自体を非表示にする
-        uploadProgressText.textContent = '';
-        uploadProgressText.style.display = 'none'; // ★ 非表示にする
+        // --- 進捗テキスト要素を生成 (非表示) ---
+        uploadProgressText = document.createElement('div');
+        uploadProgressText.id = 'upload-progress-text';
+        uploadProgressText.style.display = 'none'; // 非表示
+        uploadPreviewContainer.appendChild(uploadProgressText); // DOMには追加しておく
 
-        // 画像を追加
+        // --- 画像と削除ボタンを追加 ---
         capturedImagesQueue.forEach((imageDataUrl, index) => {
+            // ラッパーdivを作成
+            const wrapper = document.createElement('div');
+            wrapper.className = 'preview-image-wrapper';
+
+            // 画像imgを作成
             const img = document.createElement('img');
             img.src = imageDataUrl;
             img.alt = `アップロード予定 ${index + 1}`;
-            img.dataset.index = index;
-            uploadPreviewContainer.appendChild(img); // 直接追加でOK (gridなので)
+            wrapper.appendChild(img); // ラッパーに追加
+
+            // 削除ボタンbuttonを作成
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-preview-image';
+            deleteBtn.setAttribute('aria-label', '画像を削除');
+            // ★ クリック時に識別しやすいように画像URLをdata属性に持つ (indexより安全)
+            deleteBtn.dataset.imageUrl = imageDataUrl;
+            deleteBtn.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+            wrapper.appendChild(deleteBtn); // ラッパーに追加
+
+            uploadPreviewContainer.appendChild(wrapper); // コンテナにラッパーを追加
         });
         uploadPreviewContainer.style.display = 'grid';
     } else {
@@ -218,6 +235,48 @@ function showPreview() {
     // ボタン状態を「アップロード確認」に変更
     updatePreviewUploadButtonState('upload_confirm');
     // 他のボタン（撮影、撮り直し）は有効のまま（撮り直しはキャンセルとして使う）
+}
+
+// ★★★ 画像削除ボタンクリック処理 ★★★
+function handleDeletePreviewImageClick(event) {
+    // クリックされた要素が削除ボタンかチェック
+    const deleteButton = event.target.closest('.delete-preview-image');
+    if (!deleteButton) {
+        return; // 削除ボタン以外なら何もしない
+    }
+
+    console.log("Delete image button clicked.");
+    const imageUrlToDelete = deleteButton.dataset.imageUrl;
+    const wrapperToRemove = deleteButton.closest('.preview-image-wrapper');
+
+    if (!imageUrlToDelete || !wrapperToRemove) {
+        console.error("Could not find image URL or wrapper to remove.");
+        return;
+    }
+
+    // キューから該当する画像URLを削除
+    const indexToDelete = capturedImagesQueue.indexOf(imageUrlToDelete);
+    if (indexToDelete > -1) {
+        capturedImagesQueue.splice(indexToDelete, 1);
+        console.log(`Image removed from queue. New size: ${capturedImagesQueue.length}`);
+
+        // DOMからラッパーごと削除
+        wrapperToRemove.remove();
+
+        // バッジ更新
+        updatePhotoCountBadge();
+
+        // もしキューが空になったらプレビューを終了
+        if (capturedImagesQueue.length === 0) {
+            console.log("Queue is empty after deletion, exiting preview.");
+            exitPreviewMode(false); // キューは既に空
+        } else {
+            // プレビュー継続中の場合、アップロード確認ボタンの状態を維持
+            updatePreviewUploadButtonState('upload_confirm');
+        }
+    } else {
+        console.warn("Image URL not found in queue:", imageUrlToDelete);
+    }
 }
 
 // ★ トークン取得後の処理 (ボタン状態更新追加)

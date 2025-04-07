@@ -116,6 +116,7 @@ body {
     height: 40px; /* ヘッダーに合わせて少し小さく */
     border-radius: 50%;
     border: none;
+    outline: none; /* ★ アウトラインを削除 */
     color: var(--button-text-color);
     cursor: pointer;
     display: flex;
@@ -169,6 +170,15 @@ body {
     z-index: 3; /* カメラやキャプチャ画像より手前 */
 }
 
+/* ★ プレビューコンテナ内の画像ラッパー */
+.preview-image-wrapper {
+    position: relative; /* 削除ボタンの基準位置 */
+    display: flex; /* 画像を中央揃えにするため (任意) */
+    justify-content: center;
+    align-items: center;
+    /* max-width は img 要素に設定 */
+}
+
 /* プレビューコンテナ内の画像スタイル */
 #upload-preview-container img {
     width: 100%; /* グリッドカラムの幅に合わせる */
@@ -179,7 +189,39 @@ body {
     border: 1px solid #ddd;
     box-sizing: border-box;
     background-color: #eee;
-    justify-self: center; /* ★ 各画像をセル内で中央揃え */
+    /* justify-self: center; は wrapper に移動したので削除 or コメントアウト */
+}
+
+/* ★ 画像削除ボタンのスタイル (再修正) */
+.delete-preview-image {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 24px;
+    height: 24px;
+    /* background-color: rgba(0, 0, 0, 0.6); */ /* ← 半透明から変更 */
+    background-color: #6c757d; /* ★ 不透明な濃いグレーに変更 (他のボタンと合わせるなど調整可) */
+    color: white;
+    border: none;
+    outline: none; /* ★ アウトラインを削除 */
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+    z-index: 5;
+    /* box-shadow プロパティが存在しないことを確認 */
+    transition: background-color 0.2s ease;
+}
+.delete-preview-image:hover {
+    /* background-color: rgba(220, 53, 69, 0.8); */ /* ← 変更 */
+    background-color: #5a6268; /* ★ ホバー時も不透明な少し暗い色に */
+}
+.delete-preview-image i {
+    pointer-events: none;
 }
 
 /* 進捗表示テキストのスタイル */
@@ -258,12 +300,12 @@ body {
         height: calc(100dvh - 40px - 50px); /* ヘッダー40px, ボタン50pxの場合 */
     }
     #upload-preview-container {
-        gap: 5px; /* ← この行を変更 */
-        column-gap: 5px; /* ★ 列間隔は5px */
-        row-gap: 15px; /* ★ 小画面では行間隔を少し狭めて15pxに */
+        gap: 5px;
+        column-gap: 5px;
+        row-gap: 15px;
     }
     #upload-preview-container img {
-        max-width: 90px; /* 小画面では最大幅を少し小さく */
+        max-width: 90px;
     }
     /* ★ レスポンシブ内のプレビューアクションボタンスタイル削除 */
     /* .preview-actions button { ... } */

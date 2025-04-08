@@ -32,8 +32,9 @@ let googleDriveFolderId = null;
 let isPreviewMode = false;
 
 // === DOM要素取得 ===
-let video, captureButton, previewUploadButton, // ★ retryButton 削除
-    canvas, context, capturedImage, uploadPreviewContainer, uploadProgressText;
+let video, captureButton, previewUploadButton,
+    canvas, context, capturedImage, uploadPreviewContainer, uploadProgressText,
+    shutterSound; // ★ シャッター音用の変数を追加
 
 // === アプリケーション初期化 ===
 function initializeCameraApp() {
@@ -45,11 +46,11 @@ function initializeCameraApp() {
     context = canvas.getContext('2d');
     capturedImage = document.getElementById('captured-image');
     uploadPreviewContainer = document.getElementById('upload-preview-container');
+    shutterSound = document.getElementById('shutter-sound'); // ★ audio要素を取得
 
     // --- イベントリスナー設定 ---
     if (captureButton) captureButton.addEventListener('click', handleCaptureClick);
     if (previewUploadButton) previewUploadButton.addEventListener('click', handlePreviewUploadClick);
-    // ★ プレビューコンテナに削除ボタン用のリスナーを追加 (イベント委任)
     if (uploadPreviewContainer) {
         uploadPreviewContainer.addEventListener('click', handleDeletePreviewImageClick);
     }
@@ -82,16 +83,26 @@ async function fetchGoogleConfig() {
 
 // === イベントハンドラ ===
 
-// 撮影ボタン (プレビュー解除機能追加)
+// 撮影ボタン (音再生追加)
 function handleCaptureClick() {
-    // ★ プレビューモード中ならプレビューを終了
     if (isPreviewMode) {
         console.log("Exiting preview via capture button.");
-        exitPreviewMode(false); // キューはクリアしない
+        exitPreviewMode(false);
         return;
     }
     // 通常の撮影処理
     captureImageAndAddToQueue();
+
+    // ★ シャッター音を再生 ★
+    if (shutterSound) {
+        shutterSound.currentTime = 0; // 再生位置を先頭に戻す (連続クリック時用)
+        shutterSound.play().catch(error => {
+             // play()はユーザー操作起因でないと失敗することがあるが、
+             // captureButtonのクリックがユーザー操作なので通常は成功するはず
+             console.warn("シャッター音の再生に失敗しました:", error);
+        });
+    }
+
     updatePhotoCountBadge();
     updatePreviewUploadButtonState('preview');
 }

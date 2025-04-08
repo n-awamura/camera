@@ -24,16 +24,17 @@
 body {
     margin: 0;
     padding: 0;
-    background-color: var(--unified-color); /* 背景色を変更 */
+    /* background-color: var(--unified-color); */ /* ← 変更 */
+    background-color: #f8f9fa; /* ★ body の背景をプレビューと同じ色に */
     font-family: var(--font-family-noto-sans-jp);
     display: flex;
     flex-direction: column;
     height: 100vh; /* Fallback */
     height: 100dvh; /* Dynamic viewport height */
-    box-sizing: border-box; 
+    box-sizing: border-box;
     /* ヘッダーとボタンコンテナの高さを考慮 */
     padding-top: 50px;
-    padding-bottom: 50px; /* ボタンコンテナの高さに合わせて 50px に変更 */
+    padding-bottom: 50px;
 }
 
 /* ===== ヘッダー ===== */
@@ -157,26 +158,27 @@ body {
     top: 50px; /* ヘッダーの下 */
     left: 0;
     width: 100%;
-    height: calc(100dvh - 50px - 50px); /* カメラと同じ高さ */
-    background-color: #f8f9fa; /* 背景色 (任意) */
-    padding: 30px 10px 10px 10px; /* ★ 上パディングをさらに10px追加 (合計30px) */
+    /* height: calc(100dvh - 50px - 50px); */ /* ★ 固定の高さを削除 */
+    max-height: calc(100dvh - 50px - 50px); /* ★ 最大高さを設定 */
+    background-color: #f8f9fa; /* bodyと同じ色なので透明でも良いが見た目上はこのまま */
+    padding: 30px 10px 10px 10px;
     box-sizing: border-box;
     display: grid;
-    grid-template-rows: auto 1fr;
     grid-template-columns: repeat(3, 1fr);
-    column-gap: 8px; /* ★ 列間隔は8pxのまま */
-    row-gap: 20px; /* ★ 行間隔を20pxに設定 */
-    overflow-y: auto; /* 縦スクロール */
-    z-index: 3; /* カメラやキャプチャ画像より手前 */
+    column-gap: 8px;
+    row-gap: 20px;
+    align-items: start;
+    overflow-y: auto;
+    z-index: 3;
 }
 
 /* ★ プレビューコンテナ内の画像ラッパー */
 .preview-image-wrapper {
-    position: relative; /* 削除ボタンの基準位置 */
-    display: flex; /* 画像を中央揃えにするため (任意) */
+    position: relative;
+    display: flex;
     justify-content: center;
     align-items: center;
-    /* max-width は img 要素に設定 */
+    /* align-self: start; */ /* コンテナ側で設定したので不要 */
 }
 
 /* プレビューコンテナ内の画像スタイル */
@@ -192,33 +194,33 @@ body {
     /* justify-self: center; は wrapper に移動したので削除 or コメントアウト */
 }
 
-/* ★ 画像削除ボタンのスタイル (再修正) */
+/* ★ 画像削除ボタンのスタイル (グレー地に白バツ) */
 .delete-preview-image {
     position: absolute;
     top: -5px;
     right: -5px;
     width: 24px;
     height: 24px;
-    /* background-color: rgba(0, 0, 0, 0.6); */ /* ← 半透明から変更 */
-    background-color: #6c757d; /* ★ 不透明な濃いグレーに変更 (他のボタンと合わせるなど調整可) */
-    color: white;
+    /* background-color: #dc3545; */ /* ← 赤背景をやめる */
+    background-color: #6c757d; /* ★ 背景をグレーに戻す */
+    color: white; /* ★ アイコンの色は白のまま */
     border: none;
-    outline: none; /* ★ アウトラインを削除 */
+    outline: none;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1rem;
+    font-size: 1rem; /* アイコンサイズ */
     line-height: 1;
     padding: 0;
     z-index: 5;
-    /* box-shadow プロパティが存在しないことを確認 */
     transition: background-color 0.2s ease;
 }
 .delete-preview-image:hover {
-    /* background-color: rgba(220, 53, 69, 0.8); */ /* ← 変更 */
-    background-color: #5a6268; /* ★ ホバー時も不透明な少し暗い色に */
+    /* background-color: #c82333; */ /* ← ホバー背景変更 */
+    background-color: #5a6268; /* ★ ホバー時に少し濃いグレー背景に */
+    color: white; /* 白いアイコンは維持 */
 }
 .delete-preview-image i {
     pointer-events: none;
@@ -229,8 +231,7 @@ body {
     position: sticky; /* スクロールしても上部に固定 */
     top: 0;
     left: 0; /* コンテナ幅に広げるため */
-    grid-row: 1;
-    grid-column: 1 / -1; /* ★ 全カラム幅を占有 */
+    grid-column: 1 / -1; /* 全カラム幅を占有 (変更なし) */
     background-color: rgba(255, 255, 255, 0.9); /* 半透明背景 */
     padding: 8px;
     text-align: center;
@@ -290,19 +291,21 @@ body {
      }
 
     body {
-        padding-top: 40px; /* ヘッダーの高さ */
-        padding-bottom: 50px; /* ★ボタンコンテナの高さに合わせて 50px に変更 */
+        /* レスポンシブでも body 背景色は #f8f9fa のまま */
+        padding-top: 40px;
+        padding-bottom: 50px;
     }
     #camera,
     #captured-image,
     #upload-preview-container {
         top: 40px; /* ヘッダー高さ */
-        height: calc(100dvh - 40px - 50px); /* ヘッダー40px, ボタン50pxの場合 */
+        /* height: calc(100dvh - 40px - 50px); */ /* ★ 固定の高さを削除 */
+        max-height: calc(100dvh - 40px - 50px); /* ★ 最大高さは設定 */
     }
     #upload-preview-container {
-        gap: 5px;
         column-gap: 5px;
         row-gap: 15px;
+        /* align-items: start; は継承される */
     }
     #upload-preview-container img {
         max-width: 90px;
@@ -310,6 +313,13 @@ body {
     /* ★ レスポンシブ内のプレビューアクションボタンスタイル削除 */
     /* .preview-actions button { ... } */
     /* .preview-actions button i { ... } */
+    .delete-preview-image {
+        width: 20px;
+        height: 20px;
+        font-size: 1.3em; /* アイコンサイズ */
+        top: -9px;
+        right: 3px;
+    }
 } 
 
 /* スピナーアニメーション */

@@ -4,47 +4,109 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RECEIPT CAMERA ログイン</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> --> <!-- Bootstrap 4 削除 -->
 
   <!-- iOS 向けホーム画面設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="RECEIPT CAMERA">
   <link rel="apple-touch-icon" sizes="180x180" href="fudaoxiang.png">
-  <meta name="theme-color" content="#526d82">
+  <meta name="theme-color" content="#d8dbe0"> <!-- theme-color を unified-color に -->
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons (オプション) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* RECEIPT CAMERA 用に色変数を定義 */
+    :root {
+      --main-text-color: #324454; /* style.css から */
+      --unified-color: #d8dbe0;   /* style.css から */
+      --body-bg-color: #f8f9fa;     /* プレビュー背景色に合わせる */
+      --card-border-color: #dee2e6; /* Bootstrap デフォルトに近い色 */
+      --button-bg-color: var(--unified-color); /* style.css から */
+      --button-text-color: var(--main-text-color); /* style.css から */
+      --button-hover-bg-color: #c6cdd7; /* unified-color を少し暗く */
+      --link-color: #526D82; /* style.css から */
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: var(--body-bg-color); /* 背景色設定 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      border-color: var(--card-border-color); /* カードの境界線 */
+    }
+    .card-title {
+      font-family: 'Montserrat', sans-serif;
+      color: var(--main-text-color); /* タイトル色 */
+    }
+    .login-btn { /* .btn-primary の代わりにカスタムクラス */
+        background-color: var(--button-bg-color);
+        border-color: var(--button-bg-color);
+        color: var(--button-text-color);
+    }
+    .login-btn:hover {
+        background-color: var(--button-hover-bg-color);
+        border-color: var(--button-hover-bg-color);
+        color: var(--button-text-color);
+    }
+    .form-control:focus { /* フォーカス時のスタイル */
+        border-color: var(--link-color);
+        box-shadow: 0 0 0 0.25rem rgba(82, 109, 130, 0.25); /* link-color に合わせる */
+    }
+  </style>
 </head>
-<body class="bg-light">
-  <div class="container mt-5">
-    <div class="card mx-auto" style="max-width: 400px;">
-      <div class="card-body">
-        <h4 class="card-title text-center mb-4">ログイン</h4>
+<body>
+  <div class="container">
+    <div class="card mx-auto shadow-sm" style="max-width: 400px;">
+      <!-- card-body に padding を追加 -->
+      <div class="card-body p-4">
+        <!-- ロゴとタイトルを中央揃え -->
+        <div class="text-center mb-4">
+            <img src="fudaoxiang.png" alt="Logo" width="50" class="mb-2">
+            <h4 class="card-title">ログイン</h4>
+        </div>
         <form id="loginForm">
-          <div class="form-group">
-            <label for="email">メールアドレス</label>
+          <!-- Bootstrap 5 のマージンクラス mb-3 を使用 -->
+          <div class="mb-3">
+            <label for="email" class="form-label">メールアドレス</label>
             <input type="email" class="form-control" id="email" placeholder="メールアドレスを入力" required>
           </div>
-          <div class="form-group">
-            <label for="password">パスワード</label>
+          <div class="mb-3">
+            <label for="password" class="form-label">パスワード</label>
             <input type="password" class="form-control" id="password" placeholder="パスワードを入力" required>
           </div>
-          <button type="submit" class="btn btn-primary btn-block">ログイン</button>
-          <div id="loginError" class="text-danger mt-2" style="display:none;"></div>
+          <!-- ボタンにカスタムクラスと w-100 を適用 -->
+          <button type="submit" class="btn login-btn w-100">ログイン</button>
+          <!-- エラーメッセージのマージン調整 -->
+          <div id="loginError" class="text-danger mt-3" style="display:none;"></div>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Bootstrap JSなど -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- 古い Bootstrap/jQuery/Popper スクリプトは削除 -->
+  <!-- <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script> -->
+  <!-- <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script> -->
 
-  <!-- Firebaseの初期化とログイン処理 -->
+  <!-- Firebaseの初期化とログイン処理 (変更なし) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-auth.js";
 
-    // Firebase 設定
+    // Firebase 設定 (変更なし)
     const firebaseConfig = {
     apiKey: "AIzaSyCGsox95fxZh4J4ZQz4pm2o2_YwXUbXcaU",
     authDomain: "fudaoxiang-chat.firebaseapp.com",
@@ -58,24 +120,26 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // ログイン処理
+    // ログイン処理 (エラーメッセージリセット追加)
     const loginForm = document.getElementById("loginForm");
     const loginError = document.getElementById("loginError");
 
     loginForm.addEventListener("submit", (e) => {
       e.preventDefault();
+      loginError.style.display = "none"; // エラーメッセージをリセット
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
       signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-          console.log("ログイン成功:", userCredential);
+          console.log("ログイン成功:", userCredential.user); // userオブジェクト表示
           window.location.href = "index.html"; // ログイン成功後、index.htmlに遷移
         })
         .catch((error) => {
           console.error("ログインエラー:", error);
           loginError.style.display = "block";
-          loginError.textContent = "ログインに失敗しました: " + error.message;
+          // エラーメッセージを具体的に
+          loginError.textContent = "メールアドレスまたはパスワードが正しくありません。";
         });
     });
   </script>

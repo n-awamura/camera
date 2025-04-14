@@ -335,62 +335,65 @@ function handleTokenResponse(response) {
     }
 }
 
-// ★ 一括アップロード関数 (進捗テキスト表示を削除)
+// ★ 一括アップロード関数 (進捗の視覚フィードバック復活)
 async function uploadAllImagesFromQueue() {
     if (capturedImagesQueue.length === 0 ) {
         console.warn("Upload queue is empty.");
         exitPreviewMode(true);
         return;
     }
-    // ★ 進捗テキスト要素の取得は不要に
-    // const progressTextElem = uploadPreviewContainer ? uploadPreviewContainer.querySelector('#upload-progress-text') : null;
-    // if (!progressTextElem) { ... } else { uploadProgressText = progressTextElem; }
-
     const queueLength = capturedImagesQueue.length;
     console.log(`Starting upload of ${queueLength} images...`);
 
-    // ★ ボタン状態は 'uploading' に設定済み
-
-    // ★ 進捗テキスト初期化を削除
-    // if (uploadProgressText) uploadProgressText.textContent = `0 / ${queueLength} 枚 アップロード中...`;
+    // ★ ボタン状態を 'uploading' に設定
+    updatePreviewUploadButtonState('uploading');
+    // ★ 進捗テキストは表示しない
 
     let successCount = 0;
     let errorCount = 0;
 
+    // 撮り直しボタンは存在しないので無効化不要
+
     try {
         for (let i = 0; i < queueLength; i++) {
             const imageUrl = capturedImagesQueue[i];
+            // ★ 対応する画像要素を取得
             const imgElement = uploadPreviewContainer ? uploadPreviewContainer.querySelector(`img[data-index="${i}"]`) : null;
 
-            // ★ ループ内の進捗テキスト更新を削除
-            // if (uploadProgressText) uploadProgressText.textContent = `${i + 1} / ${queueLength} 枚 アップロード中...`;
-
-            if (imgElement) imgElement.style.opacity = '0.5';
+            // ★ 処理前に画像を少し薄くする (オプション、処理中を示すため)
+            if (imgElement) imgElement.style.opacity = '0.7';
 
             try {
+                // ★ アップロード実行
                 await uploadImageToDrive(imageUrl);
                 successCount++;
-                if (imgElement) { /* 成功スタイル */ }
+                // ★ アップロード成功後のスタイル
+                if (imgElement) {
+                    imgElement.style.opacity = '0.5'; // ★ 完了したので半透明に
+                    imgElement.style.border = '2px solid #28a745'; // 成功（緑枠）
+                }
             } catch (error) {
                 errorCount++;
                 console.error(`Failed to upload image ${i + 1}:`, error);
-                if (imgElement) { /* 失敗スタイル */ }
+                // ★ アップロード失敗後のスタイル
+                if (imgElement) {
+                    imgElement.style.opacity = '0.5'; // ★ 完了したので半透明に
+                    imgElement.style.border = '2px solid #dc3545'; // 失敗（赤枠）
+                }
             }
         }
 
         const finalMessage = `アップロード完了！ 成功: ${successCount}枚, 失敗: ${errorCount}枚`;
-        // ★ 完了メッセージのテキスト設定を削除
-        // if (uploadProgressText) uploadProgressText.textContent = finalMessage;
-        alert(finalMessage); // アラートは残す
+        alert(finalMessage); // アラートで結果通知
 
         setTimeout(() => {
-            exitPreviewMode(true);
-        }, 2000); // 少し待つ時間は残す
+            exitPreviewMode(true); // キューをクリアして終了
+        }, 2000);
 
     } catch (uploadError) {
          console.error("An error occurred during the upload loop:", uploadError);
          alert("アップロード中にエラーが発生しました。");
-         exitPreviewMode(false);
+         exitPreviewMode(false); // エラー時はキューをクリアしない
     }
 }
 

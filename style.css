@@ -32,9 +32,8 @@ body {
     height: 100vh; /* Fallback */
     height: 100dvh; /* Dynamic viewport height */
     box-sizing: border-box;
-    /* ヘッダーとボタンコンテナの高さを考慮 */
-    padding-top: 50px;
-    padding-bottom: 50px;
+    padding-top: 50px; /* ヘッダー高さ */
+    padding-bottom: 60px; /* ★ フッター高さに合わせて 60px に変更 */
 }
 
 /* ===== ヘッダー ===== */
@@ -79,8 +78,8 @@ body {
     top: 50px; /* ヘッダーの下 */
     left: 0;
     width: 100%;
-    /* 高さは変更なし (calc(100dvh - 50px - 50px) など) */
-    height: calc(100dvh - 50px - 50px); /* ヘッダー50px, ボタン50pxの場合 */
+    /* ★ 高さをフッター60pxに合わせて再計算 */
+    height: calc(100dvh - 50px - 60px);
     object-fit: cover;
     z-index: 1; /* プレビューより奥 */
 }
@@ -102,9 +101,9 @@ body {
     align-items: center;
     background: rgba(0,0,0,0.8); /* ここはボタンコンテナ自体の背景 */
     z-index: 10;
-    height: 50px; /* ★高さを 50px に変更 */
+    height: 60px; /* ★ 高さを 60px に変更 */
     box-sizing: border-box;
-    gap: 30px; /* ★ ボタン間隔を調整 (例: 30px) */
+    gap: 35px; /* ★ 間隔を少し調整 (例: 35px) */
 }
 
 /* 共通ボタン スタイル */
@@ -112,29 +111,28 @@ body {
 #preview-upload-button
 /* #upload-queue-button 削除 */
 {
-    /* サイズ、形 */
-    width: 40px; /* ヘッダーに合わせて少し小さく */
-    height: 40px; /* ヘッダーに合わせて少し小さく */
+    width: 50px; /* ★ サイズを大きく変更 */
+    height: 50px; /* ★ サイズを大きく変更 */
     border-radius: 50%;
     border: none;
-    outline: none; /* ★ アウトラインを削除 */
+    outline: none;
     color: var(--button-text-color);
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.1rem; /* ★アイコンサイズを少し小さく変更 (1.2rem -> 1.1rem) */
+    font-size: 1.6rem; /* ★ アイコンサイズも大きく */
     padding: 0;
     margin: 0;
     background-color: var(--unified-color);
-    position: relative; /* バッジの位置決めのため */
+    position: relative;
 }
 
-/* 枚数表示バッジのスタイル (変更なし、適用対象が #google-upload-button になる) */
+/* 枚数表示バッジのスタイル (位置を少し調整) */
 #photo-count-badge {
     position: absolute;
-    top: -3px; /* 位置微調整 */
-    right: -3px; /* 位置微調整 */
+    top: -4px; /* ★ 位置調整 */
+    right: -4px; /* ★ 位置調整 */
     background-color: #dc3545;
     color: white;
     border-radius: 50%;
@@ -158,8 +156,8 @@ body {
     top: 50px; /* ヘッダーの下 */
     left: 0;
     width: 100%;
-    /* height: calc(100dvh - 50px - 50px); */ /* ★ 固定の高さを削除 */
-    max-height: calc(100dvh - 50px - 50px); /* ★ 最大高さを設定 */
+    /* ★ 最大高さをフッター60pxに合わせて再計算 */
+    max-height: calc(100dvh - 50px - 60px);
     background-color: #f8f9fa; /* bodyと同じ色なので透明でも良いが見た目上はこのまま */
     padding: 30px 10px 10px 10px;
     box-sizing: border-box;
@@ -271,20 +269,20 @@ body {
     }
 
     .button-container {
-        height: 50px;
+        height: 60px; /* ★ 小画面でもフッター高さを 60px に（必要なら調整） */
         padding: 5px 0;
-        gap: 25px; /* ★ 小画面でも間隔調整 */
+        gap: 30px; /* ★ 間隔調整 */
     }
     #capture-button,
     #preview-upload-button
     {
-        width: 35px; /* 40pxより少し小さく */
-        height: 35px;
-        font-size: 1.3rem; /* ★こちらも少し小さく変更 (1.4rem -> 1.3rem) */
+        width: 45px; /* ★ サイズ調整 (60pxフッターに合わせて) */
+        height: 45px;
+        font-size: 1.5rem; /* ★ アイコンサイズ調整 */
     }
-     #photo-count-badge { /* バッジサイズも少し戻す */
-        top: -2px;
-        right: -2px;
+     #photo-count-badge {
+        top: -3px; /* ★ 位置調整 */
+        right: -3px;
         padding: 1px 4px;
         font-size: 0.65rem; /* 少し小さく */
         min-width: 15px;
@@ -292,15 +290,17 @@ body {
 
     body {
         /* レスポンシブでも body 背景色は #f8f9fa のまま */
-        padding-top: 40px;
-        padding-bottom: 50px;
+        padding-top: 40px; /* ヘッダー高さ */
+        padding-bottom: 60px; /* ★ フッター高さに合わせて 60px に変更 */
     }
     #camera,
     #captured-image,
     #upload-preview-container {
         top: 40px; /* ヘッダー高さ */
-        /* height: calc(100dvh - 40px - 50px); */ /* ★ 固定の高さを削除 */
-        max-height: calc(100dvh - 40px - 50px); /* ★ 最大高さは設定 */
+        /* ★ 高さをフッター60pxに合わせて再計算 */
+        max-height: calc(100dvh - 40px - 60px);
+        /* #camera, #captured-image にも height を設定する場合 */
+        height: calc(100dvh - 40px - 60px);
     }
     #upload-preview-container {
         column-gap: 5px;

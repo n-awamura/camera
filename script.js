@@ -36,6 +36,36 @@ let video, captureButton, previewUploadButton,
     canvas, context, capturedImage, uploadPreviewContainer, uploadProgressText,
     shutterSound; // ★ シャッター音用の変数を追加
 
+// --- シャッター音の安定再生ヘルパー ---
+function warmUpShutterSound() {
+    // 読み込み遅延を減らすため事前にロード
+    if (shutterSound) {
+        shutterSound.preload = 'auto';
+        shutterSound.load();
+    }
+}
+
+function playShutterSoundSafely() {
+    if (!shutterSound) return;
+
+    // 再生中でも途切れないよう、再生中はクローンを鳴らす
+    const player = shutterSound.paused ? shutterSound : shutterSound.cloneNode(true);
+    if (player === shutterSound) {
+        try {
+            shutterSound.currentTime = 0;
+        } catch (error) {
+            console.warn("シャッター音のシークに失敗:", error);
+        }
+    }
+
+    const playPromise = player.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(error => {
+            console.warn("シャッター音の再生に失敗しました:", error);
+        });
+    }
+}
+
 // === アプリケーション初期化 ===
 function initializeCameraApp() {
     // --- 要素取得 ---
@@ -47,6 +77,7 @@ function initializeCameraApp() {
     capturedImage = document.getElementById('captured-image');
     uploadPreviewContainer = document.getElementById('upload-preview-container');
     shutterSound = document.getElementById('shutter-sound'); // ★ audio要素を取得
+    warmUpShutterSound();
 
     // --- イベントリスナー設定 ---
     if (captureButton) captureButton.addEventListener('click', handleCaptureClick);
@@ -94,14 +125,7 @@ function handleCaptureClick() {
     captureImageAndAddToQueue();
 
     // ★ シャッター音を再生 ★
-    if (shutterSound) {
-        shutterSound.currentTime = 0; // 再生位置を先頭に戻す (連続クリック時用)
-        shutterSound.play().catch(error => {
-             // play()はユーザー操作起因でないと失敗することがあるが、
-             // captureButtonのクリックがユーザー操作なので通常は成功するはず
-             console.warn("シャッター音の再生に失敗しました:", error);
-        });
-    }
+    playShutterSoundSafely();
 
     updatePhotoCountBadge();
     updatePreviewUploadButtonState('preview');
@@ -335,7 +359,7 @@ function handleTokenResponse(response) {
     }
 }
 
-// ★ 一括アップロード関数 (進捗の視覚フィードバック復活)
+// ★ 一括アップロード関数 (枠線表示削除)
 async function uploadAllImagesFromQueue() {
     if (capturedImagesQueue.length === 0 ) {
         console.warn("Upload queue is empty.");
@@ -345,40 +369,32 @@ async function uploadAllImagesFromQueue() {
     const queueLength = capturedImagesQueue.length;
     console.log(`Starting upload of ${queueLength} images...`);
 
-    // ★ ボタン状態を 'uploading' に設定
     updatePreviewUploadButtonState('uploading');
-    // ★ 進捗テキストは表示しない
 
     let successCount = 0;
     let errorCount = 0;
 
-    // 撮り直しボタンは存在しないので無効化不要
-
     try {
         for (let i = 0; i < queueLength; i++) {
             const imageUrl = capturedImagesQueue[i];
-            // ★ 対応する画像要素を取得
             const imgElement = uploadPreviewContainer ? uploadPreviewContainer.querySelector(`img[data-index="${i}"]`) : null;
+            console.log(`Loop ${i}: Found imgElement?`, imgElement); // ★ 確認ログ追加
 
-            // ★ 処理前に画像を少し薄くする (オプション、処理中を示すため)
-            if (imgElement) imgElement.style.opacity = '0.7';
+            if (imgElement) imgElement.style.opacity = '0.7'; // Optional pre-opacity
 
             try {
-                // ★ アップロード実行
                 await uploadImageToDrive(imageUrl);
                 successCount++;
-                // ★ アップロード成功後のスタイル
                 if (imgElement) {
-                    imgElement.style.opacity = '0.5'; // ★ 完了したので半透明に
-                    imgElement.style.border = '2px solid #28a745'; // 成功（緑枠）
+                    console.log(`Loop ${i}: Success - Setting opacity`); // ★ 確認ログ追加
+                    imgElement.style.opacity = '0.5';
                 }
             } catch (error) {
                 errorCount++;
                 console.error(`Failed to upload image ${i + 1}:`, error);
-                // ★ アップロード失敗後のスタイル
                 if (imgElement) {
-                    imgElement.style.opacity = '0.5'; // ★ 完了したので半透明に
-                    imgElement.style.border = '2px solid #dc3545'; // 失敗（赤枠）
+                     console.log(`Loop ${i}: Error - Setting opacity`); // ★ 確認ログ追加
+                     imgElement.style.opacity = '0.5';
                 }
             }
         }

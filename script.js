@@ -37,18 +37,65 @@ let video, captureButton, previewUploadButton,
     shutterSound; // ★ シャッター音用の変数を追加
 
 // --- シャッター音の安定再生ヘルパー ---
+// Web Audioでバッファ再生し、fallbackでaudio要素を鳴らす
+let shutterAudioContext = null;
+let shutterAudioBuffer = null;
+let shutterAudioLoadingPromise = null;
+
 function warmUpShutterSound() {
-    // 読み込み遅延を減らすため事前にロード
+    // 読み込み遅延を減らすため事前にロード (fallback 用 audio 要素)
     if (shutterSound) {
         shutterSound.preload = 'auto';
         shutterSound.load();
     }
 }
 
-function playShutterSoundSafely() {
-    if (!shutterSound) return;
+async function loadShutterBuffer() {
+    if (shutterAudioBuffer) return shutterAudioBuffer;
+    if (!shutterAudioLoadingPromise) {
+        shutterAudioLoadingPromise = fetch('shutter.mp3')
+            .then(res => res.arrayBuffer())
+            .then(arrayBuf => {
+                if (!shutterAudioContext) {
+                    shutterAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                return shutterAudioContext.decodeAudioData(arrayBuf);
+            })
+            .then(decoded => {
+                shutterAudioBuffer = decoded;
+                return decoded;
+            })
+            .catch(err => {
+                console.warn("シャッター音バッファの読み込みに失敗:", err);
+                return null;
+            });
+    }
+    return shutterAudioLoadingPromise;
+}
 
-    // 再生中でも途切れないよう、再生中はクローンを鳴らす
+async function playShutterSoundSafely() {
+    // まず Web Audio で鳴らす
+    try {
+        if (!shutterAudioContext) {
+            shutterAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (shutterAudioContext.state === 'suspended') {
+            await shutterAudioContext.resume();
+        }
+        const buffer = await loadShutterBuffer();
+        if (buffer) {
+            const source = shutterAudioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(shutterAudioContext.destination);
+            source.start(0);
+            return;
+        }
+    } catch (error) {
+        console.warn("Web Audioでのシャッター再生に失敗:", error);
+    }
+
+    // fallback: audio要素（再生中でもクローンを鳴らす）
+    if (!shutterSound) return;
     const player = shutterSound.paused ? shutterSound : shutterSound.cloneNode(true);
     if (player === shutterSound) {
         try {
@@ -61,7 +108,7 @@ function playShutterSoundSafely() {
     const playPromise = player.play();
     if (playPromise && typeof playPromise.catch === 'function') {
         playPromise.catch(error => {
-            console.warn("シャッター音の再生に失敗しました:", error);
+            console.warn("シャッター音の再生に失敗しました(fallback):", error);
         });
     }
 }
@@ -125,7 +172,7 @@ function handleCaptureClick() {
     captureImageAndAddToQueue();
 
     // ★ シャッター音を再生 ★
-    playShutterSoundSafely();
+    void playShutterSoundSafely();
 
     updatePhotoCountBadge();
     updatePreviewUploadButtonState('preview');

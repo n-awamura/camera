@@ -37,10 +37,12 @@ let video, captureButton, previewUploadButton,
     shutterSound; // ★ シャッター音用の変数を追加
 
 // --- シャッター音の安定再生ヘルパー ---
-// Web Audioでバッファ再生し、fallbackでaudio要素を鳴らす
+// Web Audio + オーディオ要素プールの二重系で再生を保証する
 let shutterAudioContext = null;
 let shutterAudioBuffer = null;
 let shutterAudioLoadingPromise = null;
+let shutterPlayers = [];
+let shutterPlayerIndex = 0;
 
 function createAudioContextIfNeeded() {
     if (!shutterAudioContext) {
@@ -51,10 +53,7 @@ function createAudioContextIfNeeded() {
 
 function warmUpShutterSound() {
     // 読み込み遅延を減らすため事前にロード (fallback 用 audio 要素)
-    if (shutterSound) {
-        shutterSound.preload = 'auto';
-        shutterSound.load();
-    }
+    prepareShutterPlayers();
     // Web Audio バッファも先に読み込み開始
     void loadShutterBuffer();
 }
@@ -80,6 +79,21 @@ async function loadShutterBuffer() {
     return shutterAudioLoadingPromise;
 }
 
+function prepareShutterPlayers() {
+    if (!shutterSound) return;
+    if (shutterPlayers.length > 0) return; // 既に作成済み
+    const base = shutterSound;
+    base.preload = 'auto';
+    base.load();
+    shutterPlayers.push(base);
+    for (let i = 0; i < 3; i++) {
+        const clone = base.cloneNode(true);
+        clone.preload = 'auto';
+        clone.load();
+        shutterPlayers.push(clone);
+    }
+}
+
 function setupShutterAudioUnlock() {
     const unlock = async () => {
         try {
@@ -88,6 +102,7 @@ function setupShutterAudioUnlock() {
                 await shutterAudioContext.resume();
             }
             await loadShutterBuffer();
+            prepareShutterPlayers();
         } catch (e) {
             console.warn("シャッター音のアンロックに失敗:", e);
         }
@@ -98,41 +113,51 @@ function setupShutterAudioUnlock() {
     window.addEventListener('mousedown', unlock, { once: true });
 }
 
-async function playShutterSoundSafely() {
-    // まず Web Audio で鳴らす
+async function playViaWebAudio() {
     try {
         createAudioContextIfNeeded();
         if (shutterAudioContext.state === 'suspended') {
             await shutterAudioContext.resume();
         }
         const buffer = await loadShutterBuffer();
-        if (buffer) {
-            const source = shutterAudioContext.createBufferSource();
-            source.buffer = buffer;
-            source.connect(shutterAudioContext.destination);
-            source.start(0);
-            return;
-        }
+        if (!buffer) return false;
+        const source = shutterAudioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(shutterAudioContext.destination);
+        source.start(0);
+        return true;
     } catch (error) {
         console.warn("Web Audioでのシャッター再生に失敗:", error);
+        return false;
     }
+}
 
-    // fallback: audio要素（再生中でもクローンを鳴らす）
-    if (!shutterSound) return;
-    const player = shutterSound.paused ? shutterSound : shutterSound.cloneNode(true);
-    if (player === shutterSound) {
-        try {
-            shutterSound.currentTime = 0;
-        } catch (error) {
-            console.warn("シャッター音のシークに失敗:", error);
-        }
+function playViaAudioElement() {
+    prepareShutterPlayers();
+    if (shutterPlayers.length === 0) return false;
+    shutterPlayerIndex = (shutterPlayerIndex + 1) % shutterPlayers.length;
+    const player = shutterPlayers[shutterPlayerIndex];
+    try {
+        player.currentTime = 0;
+    } catch (error) {
+        console.warn("シャッター音のシークに失敗(fallback):", error);
     }
-
     const playPromise = player.play();
     if (playPromise && typeof playPromise.catch === 'function') {
         playPromise.catch(error => {
             console.warn("シャッター音の再生に失敗しました(fallback):", error);
         });
+    }
+    return true;
+}
+
+async function playShutterSoundSafely() {
+    // Web Audio を優先しつつ、120ms以内に開始できなければ即フォールバック
+    const webAudioPromise = playViaWebAudio();
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve('timeout'), 120));
+    const result = await Promise.race([webAudioPromise, timeoutPromise]);
+    if (result !== true) {
+        playViaAudioElement();
     }
 }
 

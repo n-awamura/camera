@@ -42,12 +42,21 @@ let shutterAudioContext = null;
 let shutterAudioBuffer = null;
 let shutterAudioLoadingPromise = null;
 
+function createAudioContextIfNeeded() {
+    if (!shutterAudioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        shutterAudioContext = new AudioCtx({ latencyHint: 'interactive' });
+    }
+}
+
 function warmUpShutterSound() {
     // 読み込み遅延を減らすため事前にロード (fallback 用 audio 要素)
     if (shutterSound) {
         shutterSound.preload = 'auto';
         shutterSound.load();
     }
+    // Web Audio バッファも先に読み込み開始
+    void loadShutterBuffer();
 }
 
 async function loadShutterBuffer() {
@@ -56,9 +65,7 @@ async function loadShutterBuffer() {
         shutterAudioLoadingPromise = fetch('shutter.mp3')
             .then(res => res.arrayBuffer())
             .then(arrayBuf => {
-                if (!shutterAudioContext) {
-                    shutterAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
+                createAudioContextIfNeeded();
                 return shutterAudioContext.decodeAudioData(arrayBuf);
             })
             .then(decoded => {
@@ -73,12 +80,28 @@ async function loadShutterBuffer() {
     return shutterAudioLoadingPromise;
 }
 
+function setupShutterAudioUnlock() {
+    const unlock = async () => {
+        try {
+            createAudioContextIfNeeded();
+            if (shutterAudioContext.state === 'suspended') {
+                await shutterAudioContext.resume();
+            }
+            await loadShutterBuffer();
+        } catch (e) {
+            console.warn("シャッター音のアンロックに失敗:", e);
+        }
+    };
+    // 最初のユーザー操作でアンロック
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('touchstart', unlock, { once: true });
+    window.addEventListener('mousedown', unlock, { once: true });
+}
+
 async function playShutterSoundSafely() {
     // まず Web Audio で鳴らす
     try {
-        if (!shutterAudioContext) {
-            shutterAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        createAudioContextIfNeeded();
         if (shutterAudioContext.state === 'suspended') {
             await shutterAudioContext.resume();
         }
@@ -125,6 +148,7 @@ function initializeCameraApp() {
     uploadPreviewContainer = document.getElementById('upload-preview-container');
     shutterSound = document.getElementById('shutter-sound'); // ★ audio要素を取得
     warmUpShutterSound();
+    setupShutterAudioUnlock();
 
     // --- イベントリスナー設定 ---
     if (captureButton) captureButton.addEventListener('click', handleCaptureClick);

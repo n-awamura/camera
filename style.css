@@ -1,14 +1,15 @@
 /* ===== CSS変数の定義 ===== */
 :root {
-    --main-text-color: #324454; /* 濃いグレー */
-    --link-color: #526D82;
-    --link-hover-color: #4682B4;
-    --active-link-bg-color: #4682B4;
+    --main-text-color: #1f1f1f; /* household-expenses-frontend から */
+    --header-text-color: #333; /* household-expenses-frontend から */
+    --link-color: #1677ff; /* ボタン背景色から */
+    --link-hover-color: #1677ff;
+    --active-link-bg-color: #1677ff;
     --active-link-text-color: #fff;
-    --light-blue-gray: #d8dbe0; /* 実際の色の値 */
+    --light-blue-gray: #d8dbe0; /* ボタン背景として維持 */
     --very-light-blue-gray: #f0f4f8;
-    --heading-bg-color: #e6e9ed;
-    --border-color: #94a9b8;
+    --heading-bg-color: #fff; /* ヘッダー背景色 */
+    --border-color: #e0e0e0; /* household-expenses-frontend から */
     --font-family-montserrat: "Montserrat", sans-serif;
     --font-family-noto-sans-jp: "Noto Sans JP", sans-serif;
 
@@ -17,7 +18,7 @@
     --button-primary-bg: var(--unified-color);
     --button-secondary-bg: var(--unified-color);
     --button-info-bg: var(--unified-color);
-    --button-text-color: var(--main-text-color); /* テキスト/アイコン色を濃いグレーに */
+    --button-text-color: var(--header-text-color); /* テキスト/アイコン色を #333 に */
 }
 
 /* ===== ページ全体のベース設定 ===== */
@@ -25,7 +26,7 @@ body {
     margin: 0;
     padding: 0;
     /* background-color: var(--unified-color); */ /* ← 変更 */
-    background-color: #f8f9fa; /* ★ body の背景をプレビューと同じ色に */
+    background-color: #f5f5f5; /* household-expenses-frontend から */
     font-family: var(--font-family-noto-sans-jp);
     display: flex;
     flex-direction: column;
@@ -42,7 +43,8 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    background-color: var(--unified-color); /* ヘッダー背景色を変更 */
+    background-color: #fff; /* household-expenses-frontend から */
+    border-bottom: 1px solid #e0e0e0; /* household-expenses-frontend から */
     height: 50px; /* ヘッダー高さ */
     display: flex;
     justify-content: space-between; /* ロゴとコントロール（あれば）を両端に */
@@ -158,7 +160,7 @@ body {
     width: 100%;
     /* ★ 最大高さをフッター60pxに合わせて再計算 */
     max-height: calc(100dvh - 50px - 60px);
-    background-color: #f8f9fa; /* bodyと同じ色なので透明でも良いが見た目上はこのまま */
+    background-color: #f5f5f5; /* household-expenses-frontend から */
     padding: 30px 10px 10px 10px;
     box-sizing: border-box;
     display: grid;
@@ -235,7 +237,7 @@ body {
     text-align: center;
     font-size: 0.9rem;
     font-weight: bold;
-    color: #333;
+    color: var(--header-text-color); /* household-expenses-frontend から */
     z-index: 4;
     margin-bottom: 8px; /* グリッドの gap とは別にマージン調整 */
 }
@@ -289,7 +291,7 @@ body {
      }
 
     body {
-        /* レスポンシブでも body 背景色は #f8f9fa のまま */
+        /* レスポンシブでも body 背景色は #f5f5f5 のまま */
         padding-top: 40px; /* ヘッダー高さ */
         padding-bottom: 60px; /* ★ フッター高さに合わせて 60px に変更 */
     }
